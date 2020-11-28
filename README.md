@@ -1,2 +1,2 @@
 # esp_nrf24
-A simple library for using the nRF24L0 with the esp32
+A simple library for using the nRF24L01+ and nRF24L01 with the ESP32
