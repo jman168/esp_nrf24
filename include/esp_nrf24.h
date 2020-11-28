@@ -3,6 +3,7 @@
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_err.h"
 
 #include "esp_nrf24_map.h"
 
@@ -13,6 +14,12 @@
 #define NRF24_TAG "NRF24"
 
 #define NRF24_CHECK_OK(ret) if((ret) != ESP_OK) return (ret)
+
+enum nrf24_data_rate_t {
+    NRF24_1MBPS = 0,
+    NRF24_2MBPS,
+    NRF24_250KBPS
+};
 
 typedef struct {
     spi_host_device_t host_id;
@@ -33,5 +40,7 @@ esp_err_t nrf24_flush_rx(nrf24_t *dev);
 esp_err_t nrf24_power_up_tx(nrf24_t *dev);
 esp_err_t nrf24_power_up_rx(nrf24_t *dev);
 esp_err_t nrf24_power_down(nrf24_t *dev);
+
+esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate);
 
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);

@@ -131,7 +131,6 @@ esp_err_t nrf24_power_up_rx(nrf24_t *dev) {
     config = config | NRF24_MASK_PWR_UP; // Power on
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
     NRF24_CHECK_OK(nrf24_flush_rx(dev));
-
     ESP_LOGI(NRF24_TAG, "Powered on in PRX mode");
 
     return ESP_OK;
@@ -146,6 +145,34 @@ esp_err_t nrf24_power_down(nrf24_t *dev) {
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
 
     ESP_LOGI(NRF24_TAG, "Powered down");
+
+    return ESP_OK;
+}
+
+esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate) {
+    if(rate > 2) {
+        ESP_LOGW(NRF24_TAG, "The data rate cannot be greater than 2 (1Mbps, 2Mbps or 250kbps)");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    uint8_t rf_setup;
+    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
+    rf_setup = rf_setup | ((rate & 0b10) << 2);
+    rf_setup = rf_setup | ((rate & 0b1) << 5);
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
+
+    switch (rate)
+    {
+        case NRF24_250KBPS:
+            ESP_LOGI(NRF24_TAG, "Set data rate to 250kbps");
+            break;
+        case NRF24_1MBPS:
+            ESP_LOGI(NRF24_TAG, "Set data rate to 1Mbps");
+            break;
+        case NRF24_2MBPS:
+            ESP_LOGI(NRF24_TAG, "Set data rate to 2Mbps");
+            break;
+    }
 
     return ESP_OK;
 }
