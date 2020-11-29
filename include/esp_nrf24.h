@@ -21,6 +21,12 @@ enum nrf24_data_rate_t {
     NRF24_250KBPS
 };
 
+enum nrf24_crc_t {
+    NRF24_CRC_DISABLED = 0,
+    NRF24_CRC_1BYTE,
+    NRF24_CRC_2BYTES
+};
+
 typedef struct {
     spi_host_device_t host_id;
     spi_device_handle_t spi_handle;
@@ -42,5 +48,6 @@ esp_err_t nrf24_power_up_rx(nrf24_t *dev);
 esp_err_t nrf24_power_down(nrf24_t *dev);
 
 esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate);
+esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc);
 
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);
