@@ -119,8 +119,8 @@ esp_err_t nrf24_power_up_tx(nrf24_t *dev) {
     ESP_LOGI(NRF24_TAG, "Powered on in PTX mode");
 
     NRF24_CHECK_OK(gpio_set_level(dev->ce_io_num, 1)); // Start transmiting whatever is in the FIFO or go into Standby II if there isn't anything in the FIFO
+   
     ESP_LOGI(NRF24_TAG, "Ready to transmit");
-
     return ESP_OK;
 }
 
@@ -131,8 +131,8 @@ esp_err_t nrf24_power_up_rx(nrf24_t *dev) {
     config = config | NRF24_MASK_PWR_UP; // Power on
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
     NRF24_CHECK_OK(nrf24_flush_rx(dev));
-    ESP_LOGI(NRF24_TAG, "Powered on in PRX mode");
 
+    ESP_LOGI(NRF24_TAG, "Powered on in PRX mode");
     return ESP_OK;
 }
 
@@ -145,11 +145,13 @@ esp_err_t nrf24_power_down(nrf24_t *dev) {
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
 
     ESP_LOGI(NRF24_TAG, "Powered down");
-
     return ESP_OK;
 }
 
 esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate) {
+    uint8_t rf_setup;
+    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
+
     switch (rate)
     {
         case NRF24_250KBPS:
@@ -170,20 +172,16 @@ esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate) {
             break;
     }
 
-    uint8_t rf_setup;
-    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
     rf_setup = rf_setup | ((rate & 0b10) << 2);
     rf_setup = rf_setup | ((rate & 0b1) << 5);
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
 
     ESP_LOGI(NRF24_TAG, "Set data rate.");
-
     return ESP_OK;
 }
 
 esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc) {
     uint8_t config;
-
     NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_CONFIG, &config, 1));
     
     switch (crc)
@@ -214,6 +212,111 @@ esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc) {
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
 
     ESP_LOGI(NRF24_TAG, "Set CRC.");
+    return ESP_OK;
+}
 
+esp_err_t nrf24_enable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe) {
+    uint8_t en_rxaddr;
+    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_EN_RXADDR, &en_rxaddr, 1));
+
+    switch (pipe)
+    {
+        case NRF24_P0:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 0...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P0;
+            break;
+        
+        case NRF24_P1:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 1...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P1;
+            break;
+
+        case NRF24_P2:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 2...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P2;
+            break;
+
+        case NRF24_P3:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 3...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P3;
+            break;
+
+        case NRF24_P4:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 4...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P4;
+            break;
+
+        case NRF24_P5:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from pipe 5...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_P5;
+            break;
+
+        case NRF24_ALL_PIPES:
+            ESP_LOGI(NRF24_TAG, "Enabling RX from all pipes...");
+            en_rxaddr = en_rxaddr | NRF24_MASK_ERX_ALL;
+            break;
+    
+        default:
+            ESP_LOGW(NRF24_TAG, "Invalid pipe, valid pipes are P0-P5 and all pipes.");
+            return ESP_ERR_INVALID_ARG;
+            break;
+    }
+
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_EN_RXADDR, &en_rxaddr, 1));
+
+    ESP_LOGI(NRF24_TAG, "Enabled RX PIPE.");
+    return ESP_OK;
+}
+
+esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe) {
+    uint8_t en_rxaddr;
+    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_EN_RXADDR, &en_rxaddr, 1));
+
+    switch (pipe)
+    {
+        case NRF24_P0:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 0...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P0);
+            break;
+        
+        case NRF24_P1:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 1...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P1);
+            break;
+
+        case NRF24_P2:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 2...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P2);
+            break;
+
+        case NRF24_P3:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 3...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P3);
+            break;
+
+        case NRF24_P4:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 4...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P4);
+            break;
+
+        case NRF24_P5:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 5...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P5);
+            break;
+
+        case NRF24_ALL_PIPES:
+            ESP_LOGI(NRF24_TAG, "Disabling RX from all pipes...");
+            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_ALL);
+            break;
+    
+        default:
+            ESP_LOGW(NRF24_TAG, "Invalid pipe, valid pipes are P0-P5 and all pipes.");
+            return ESP_ERR_INVALID_ARG;
+            break;
+    }
+
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_EN_RXADDR, &en_rxaddr, 1));
+
+    ESP_LOGI(NRF24_TAG, "Disabled RX PIPE.");
     return ESP_OK;
 }

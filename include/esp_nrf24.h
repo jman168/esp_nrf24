@@ -27,6 +27,16 @@ enum nrf24_crc_t {
     NRF24_CRC_2BYTES
 };
 
+enum nrf24_data_pipe_t {
+    NRF24_P0 = 0,
+    NRF24_P1,
+    NRF24_P2,
+    NRF24_P3,
+    NRF24_P4,
+    NRF24_P5,
+    NRF24_ALL_PIPES
+};
+
 typedef struct {
     spi_host_device_t host_id;
     spi_device_handle_t spi_handle;
@@ -49,5 +59,8 @@ esp_err_t nrf24_power_down(nrf24_t *dev);
 
 esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate);
 esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc);
+
+esp_err_t nrf24_enable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);
+esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);
 
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);

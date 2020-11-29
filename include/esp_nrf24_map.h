@@ -25,7 +25,16 @@
 #define NRF24_MASK_MASK_RX_DR (1<<6)
 
 #define NRF24_REG_EN_AA 0x01
+
 #define NRF24_REG_EN_RXADDR 0x02
+#define NRF24_MASK_ERX_P0 (1<<0)
+#define NRF24_MASK_ERX_P1 (1<<1)
+#define NRF24_MASK_ERX_P2 (1<<2)
+#define NRF24_MASK_ERX_P3 (1<<3)
+#define NRF24_MASK_ERX_P4 (1<<4)
+#define NRF24_MASK_ERX_P5 (1<<5)
+#define NRF24_MASK_ERX_ALL (0b00111111)
+
 #define NRF24_REG_SETUP_AW 0x03
 #define NRF24_REG_SETUP_RETR 0x04
 #define NRF24_REG_RF_CH 0x05
