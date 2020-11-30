@@ -59,6 +59,7 @@ esp_err_t nrf24_power_down(nrf24_t *dev);
 
 esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate);
 esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc);
+esp_err_t nrf24_set_rf_channel(nrf24_t *dev, uint8_t channel);
 
 esp_err_t nrf24_enable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);
 esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);

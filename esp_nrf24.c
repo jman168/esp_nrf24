@@ -215,6 +215,24 @@ esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc) {
     return ESP_OK;
 }
 
+esp_err_t nrf24_set_rf_channel(nrf24_t *dev, uint8_t channel) {
+    if(channel > 125) {
+        ESP_LOGW(NRF24_TAG, "Unsupported channel, maximum channel number supported is 125.");
+        return ESP_ERR_INVALID_ARG; 
+    }
+    
+    uint8_t rf_ch;
+    NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_RF_CH, &rf_ch, 1));
+
+    ESP_LOGI(NRF24_TAG, "Setting RF channel to %iMhz...", 2400 + (int)channel);
+    rf_ch = channel & NRF24_MASK_RF_CH;
+
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RF_CH, &rf_ch, 1));
+
+    ESP_LOGI(NRF24_TAG, "Set RF channel.");
+    return ESP_OK;
+}
+
 esp_err_t nrf24_enable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe) {
     uint8_t en_rxaddr;
     NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_EN_RXADDR, &en_rxaddr, 1));
