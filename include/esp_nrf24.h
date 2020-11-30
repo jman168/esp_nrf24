@@ -69,4 +69,6 @@ void nrf24_flip_bytes(uint8_t *data, size_t len);
 esp_err_t nrf24_set_rx_address(nrf24_t *dev, enum nrf24_data_pipe_t pipe, uint8_t *address, uint8_t address_length);
 esp_err_t nrf24_set_tx_address(nrf24_t *dev, uint8_t *address, uint8_t address_length);
 
+esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length);
+
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);

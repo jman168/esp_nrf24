@@ -193,14 +193,14 @@ esp_err_t nrf24_set_crc(nrf24_t *dev, enum nrf24_crc_t crc) {
 
         case NRF24_CRC_1BYTE:
             ESP_LOGI(NRF24_TAG, "Setting CRC to 1 byte...");
-            config = config & NRF24_MASK_EN_CRC;
+            config = config | NRF24_MASK_EN_CRC;
             config = config & (~NRF24_MASK_CRCO);
             break;
 
         case NRF24_CRC_2BYTES:
             ESP_LOGI(NRF24_TAG, "Setting CRC to 2 bytes...");
-            config = config & NRF24_MASK_EN_CRC;
-            config = config & NRF24_MASK_CRCO;
+            config = config | NRF24_MASK_EN_CRC;
+            config = config | NRF24_MASK_CRCO;
             break;
     
         default:
@@ -294,37 +294,37 @@ esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe) {
     {
         case NRF24_P0:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 0...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P0);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P0);
             break;
         
         case NRF24_P1:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 1...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P1);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P1);
             break;
 
         case NRF24_P2:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 2...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P2);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P2);
             break;
 
         case NRF24_P3:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 3...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P3);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P3);
             break;
 
         case NRF24_P4:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 4...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P4);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P4);
             break;
 
         case NRF24_P5:
             ESP_LOGI(NRF24_TAG, "Disabling RX from pipe 5...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_P5);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_P5);
             break;
 
         case NRF24_ALL_PIPES:
             ESP_LOGI(NRF24_TAG, "Disabling RX from all pipes...");
-            en_rxaddr = en_rxaddr | (~NRF24_MASK_ERX_ALL);
+            en_rxaddr = en_rxaddr & (~NRF24_MASK_ERX_ALL);
             break;
     
         default:
@@ -425,6 +425,51 @@ esp_err_t nrf24_set_tx_address(nrf24_t *dev, uint8_t *address, uint8_t address_l
     ESP_LOGI(NRF24_TAG, "Setting TX address...");
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_TX_ADDR, address, address_length));
     ESP_LOGI(NRF24_TAG, "Set.");
+
+    return ESP_OK;
+}
+
+esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length) {
+    if(length > 32) {
+        ESP_LOGW(NRF24_TAG, "Invalid payload length, valid lengths are 0-32 (0 being dynamic payload length).");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if(length == 0) {
+        uint8_t features;
+        ESP_LOGI(NRF24_TAG, "Enabling dynamic payload length...");
+        NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_FEATURE, &features, 1));
+        features = features | NRF24_MASK_EN_DPL;
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_FEATURE, &features, 1));
+        ESP_LOGI(NRF24_TAG, "Set.");
+
+        uint8_t dynpd = 0b00111111;
+        ESP_LOGI(NRF24_TAG, "Enabling dynamic payload length for pipes...");
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_DYNPD, &dynpd, 1));
+        ESP_LOGI(NRF24_TAG, "Set.");
+    } else {
+        uint8_t features;
+        ESP_LOGI(NRF24_TAG, "Disabling dynamic payload length...");
+        NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_FEATURE, &features, 1));
+        features = features & (~NRF24_MASK_EN_DPL);
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_FEATURE, &features, 1));
+        ESP_LOGI(NRF24_TAG, "Set.");
+
+        uint8_t dynpd = 0;
+        ESP_LOGI(NRF24_TAG, "Disabling dynamic payload length for pipes...");
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_DYNPD, &dynpd, 1));
+        ESP_LOGI(NRF24_TAG, "Set.");
+
+        length = length & NRF24_MASK_RX_PW_P; // Technically this isn't needed because of the if at the beginining, but just in case
+        ESP_LOGI(NRF24_TAG, "Setting payload length to %i for all pipes...", (int)length);
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P0, &length, 1));
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P1, &length, 1));
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P2, &length, 1));
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P3, &length, 1));
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P4, &length, 1));   
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_PW_P5, &length, 1));   
+        ESP_LOGI(NRF24_TAG, "Set.");
+    }
 
     return ESP_OK;
 }
