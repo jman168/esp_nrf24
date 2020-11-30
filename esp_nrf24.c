@@ -408,3 +408,23 @@ esp_err_t nrf24_set_rx_address(nrf24_t *dev, enum nrf24_data_pipe_t pipe, uint8_
 
     return ESP_OK;
 }
+
+// Address is MSByte first
+esp_err_t nrf24_set_tx_address(nrf24_t *dev, uint8_t *address, uint8_t address_length) {
+    if(address_length > 5 || address_length < 3) {
+        ESP_LOGW(NRF24_TAG, "Invalid address length, valid address lengths are 3-5.");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    nrf24_flip_bytes(address, address_length);
+
+    ESP_LOGI(NRF24_TAG, "Setting pipe 0 RX address (required to be the same as the TX address)...");
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P0, address, address_length));
+    ESP_LOGI(NRF24_TAG, "Set.");
+
+    ESP_LOGI(NRF24_TAG, "Setting TX address...");
+    NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_TX_ADDR, address, address_length));
+    ESP_LOGI(NRF24_TAG, "Set.");
+
+    return ESP_OK;
+}
