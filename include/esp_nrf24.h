@@ -64,4 +64,8 @@ esp_err_t nrf24_set_rf_channel(nrf24_t *dev, uint8_t channel);
 esp_err_t nrf24_enable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);
 esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe);
 
+void nrf24_flip_bytes(uint8_t *data, size_t len);
+
+esp_err_t nrf24_set_rx_address(nrf24_t *dev, enum nrf24_data_pipe_t pipe, uint8_t *address, uint8_t address_length);
+
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);

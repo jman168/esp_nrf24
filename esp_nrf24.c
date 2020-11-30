@@ -338,3 +338,73 @@ esp_err_t nrf24_disable_rx_pipe(nrf24_t *dev, enum nrf24_data_pipe_t pipe) {
     ESP_LOGI(NRF24_TAG, "Disabled RX PIPE.");
     return ESP_OK;
 }
+
+void nrf24_flip_bytes(uint8_t *data, size_t len) {
+    uint8_t temp;
+    for(int i = 0; i < len/2; i++) {
+        temp = data[i];
+        data[i] = data[(len-1)-i];
+        data[(len-1)-i] = temp;
+    }
+}
+
+// Address is MSByte first
+esp_err_t nrf24_set_rx_address(nrf24_t *dev, enum nrf24_data_pipe_t pipe, uint8_t *address, uint8_t address_length) {
+    if(address_length > 5 || address_length < 3) {
+        ESP_LOGW(NRF24_TAG, "Invalid address length, valid address lengths are 3-5.");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    nrf24_flip_bytes(address, address_length);
+    
+    if(pipe == NRF24_P0) {
+        ESP_LOGI(NRF24_TAG, "Setting pipe 0 RX address...");
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P0, address, address_length));
+    }
+    
+    else if(pipe == NRF24_P1) {
+        ESP_LOGI(NRF24_TAG, "Setting pipe 1 RX address...");
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P1, address, address_length));
+    }
+    
+    else {
+        ESP_LOGI(NRF24_TAG, "Setting pipe 1 RX address (base address, all but LSByte are required to be the same)...");
+        uint8_t rx_addr_p1[address_length];
+        NRF24_CHECK_OK(nrf24_get_register(dev, NRF24_REG_RX_ADDR_P1, rx_addr_p1, address_length));
+        memcpy(&address[1], &rx_addr_p1[1], address_length-1);
+        NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P1, rx_addr_p1, address_length));
+        ESP_LOGI(NRF24_TAG, "Set.");
+
+        switch (pipe)
+        {
+            case NRF24_P2:
+                ESP_LOGI(NRF24_TAG, "Setting pipe 2 RX address...");
+                NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P2, &address[0], 1));
+                break;
+
+            case NRF24_P3:
+                ESP_LOGI(NRF24_TAG, "Setting pipe 3 RX address...");
+                NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P3, &address[0], 1));
+                break;
+            
+            case NRF24_P4:
+                ESP_LOGI(NRF24_TAG, "Setting pipe 4 RX address...");
+                NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P4, &address[0], 1));
+                break;
+
+            case NRF24_P5:
+                ESP_LOGI(NRF24_TAG, "Setting pipe 5 RX address...");
+                NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RX_ADDR_P5, &address[0], 1));
+                break;
+            
+            default:
+                ESP_LOGW(NRF24_TAG, "Invalid pipe, valid pipes are P0-P5.");
+                return ESP_ERR_INVALID_ARG;
+                break;
+        }
+    }
+
+    ESP_LOGI(NRF24_TAG, "Finished setting RX address.");
+
+    return ESP_OK;
+}
