@@ -16,7 +16,7 @@ esp_err_t nrf24_init(nrf24_t *dev, spi_host_device_t host_id, int mosi_io_num, i
         quadhd_io_num: -1,
     };
     ret = spi_bus_initialize(host_id, &config, 1);
-    ESP_LOGI(NRF24_TAG, "Initalized SPI bus, status: %d", ret);
+    ESP_LOGI(NRF24_TAG, "Initalized SPI bus, status: %d.", ret);
     NRF24_CHECK_OK(ret);
     
     const spi_device_interface_config_t devcfg = {
@@ -29,7 +29,7 @@ esp_err_t nrf24_init(nrf24_t *dev, spi_host_device_t host_id, int mosi_io_num, i
 	};
     spi_device_handle_t handle;
     ret = spi_bus_add_device(host_id, &devcfg, &handle);
-    ESP_LOGI(NRF24_TAG, "Added SPI bus device, status: %d", ret);
+    ESP_LOGI(NRF24_TAG, "Added SPI bus device, status: %d.", ret);
     NRF24_CHECK_OK(ret);
 
     dev->host_id = host_id;
@@ -44,11 +44,11 @@ esp_err_t nrf24_free(nrf24_t *dev) {
     esp_err_t ret;
 
     ret = spi_bus_remove_device(dev->spi_handle);
-    ESP_LOGI(NRF24_TAG, "Removed SPI device, status: %d", ret);
+    ESP_LOGI(NRF24_TAG, "Removed SPI device, status: %d.", ret);
     NRF24_CHECK_OK(ret);
 
     ret = spi_bus_free(dev->host_id);
-    ESP_LOGI(NRF24_TAG, "Freed SPI bus, status: %d", ret);
+    ESP_LOGI(NRF24_TAG, "Freed SPI bus, status: %d.", ret);
     NRF24_CHECK_OK(ret);
 
     return ESP_OK;
@@ -91,7 +91,7 @@ esp_err_t nrf24_flush_tx(nrf24_t *dev) {
     transaction.tx_buffer = NULL;
     transaction.rx_buffer = NULL;
 
-    ESP_LOGI(NRF24_TAG, "Flushed TX FIFO");
+    ESP_LOGI(NRF24_TAG, "Flushed TX FIFO.");
 
     return spi_device_transmit(dev->spi_handle, &transaction);
 }
@@ -104,7 +104,7 @@ esp_err_t nrf24_flush_rx(nrf24_t *dev) {
     transaction.tx_buffer = NULL;
     transaction.rx_buffer = NULL;
 
-    ESP_LOGI(NRF24_TAG, "Flushed RX FIFO");
+    ESP_LOGI(NRF24_TAG, "Flushed RX FIFO.");
 
     return spi_device_transmit(dev->spi_handle, &transaction);
 }
@@ -116,11 +116,11 @@ esp_err_t nrf24_power_up_tx(nrf24_t *dev) {
     config = config | NRF24_MASK_PWR_UP; // Power on
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
     NRF24_CHECK_OK(nrf24_flush_tx(dev));
-    ESP_LOGI(NRF24_TAG, "Powered on in PTX mode");
+    ESP_LOGI(NRF24_TAG, "Powered on in PTX mode.");
 
     NRF24_CHECK_OK(gpio_set_level(dev->ce_io_num, 1)); // Start transmiting whatever is in the FIFO or go into Standby II if there isn't anything in the FIFO
    
-    ESP_LOGI(NRF24_TAG, "Ready to transmit");
+    ESP_LOGI(NRF24_TAG, "Ready to transmit.");
     return ESP_OK;
 }
 
@@ -131,8 +131,11 @@ esp_err_t nrf24_power_up_rx(nrf24_t *dev) {
     config = config | NRF24_MASK_PWR_UP; // Power on
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
     NRF24_CHECK_OK(nrf24_flush_rx(dev));
+    ESP_LOGI(NRF24_TAG, "Powered on in PRX mode.");
 
-    ESP_LOGI(NRF24_TAG, "Powered on in PRX mode");
+    NRF24_CHECK_OK(gpio_set_level(dev->ce_io_num, 1)); // Start listening for packets
+
+    ESP_LOGI(NRF24_TAG, "Listening for packets.");
     return ESP_OK;
 }
 
@@ -144,7 +147,7 @@ esp_err_t nrf24_power_down(nrf24_t *dev) {
     config = config & (~NRF24_MASK_PWR_UP); // Power off
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_CONFIG, &config, 1));
 
-    ESP_LOGI(NRF24_TAG, "Powered down");
+    ESP_LOGI(NRF24_TAG, "Powered down.");
     return ESP_OK;
 }
 
