@@ -476,3 +476,74 @@ esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length) {
 
     return ESP_OK;
 }
+
+esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len) {
+    spi_transaction_t transaction;
+    memset(&transaction, 0, sizeof(spi_transaction_t));
+    transaction.cmd = NRF24_CMD_W_TX_PAYLOAD;
+    transaction.length = len * 8;
+    transaction.tx_buffer = data;
+    transaction.rx_buffer = NULL;
+
+    return spi_device_transmit(dev->spi_handle, &transaction);
+}
+
+int nrf24_get_data_available(nrf24_t *dev) {
+    esp_err_t ret;
+    
+    uint8_t status;
+    ret = nrf24_get_register(dev, NRF24_REG_STATUS, &status, 1);
+    if(ret != ESP_OK)
+        return -1;
+    
+    if((status & NRF24_MASK_RX_P_NO) != NRF24_MASK_RX_P_NO)
+        return 1;
+    else
+        return 0;
+}
+
+esp_err_t nrf24_get_data(nrf24_t *dev, uint8_t *data, uint8_t *len) {
+    esp_err_t ret;
+    
+    uint8_t payload_width;
+    
+    spi_transaction_t transaction;
+    spi_transaction_ext_t ext_transaction; // Se we can have an address phase to fix bit misalignment in response
+    memset(&transaction, 0, sizeof(spi_transaction_t));
+    memset(&ext_transaction, 0, sizeof(spi_transaction_ext_t));
+    transaction.flags = SPI_TRANS_VARIABLE_ADDR,
+    transaction.cmd = NRF24_CMD_R_RX_PL_WID;
+    transaction.length = 8;
+    transaction.tx_buffer = &payload_width;
+    transaction.rx_buffer = &payload_width;
+
+    ext_transaction.base = transaction;
+    ext_transaction.address_bits = 1; // Add one address bit to fix bit misalignment in response
+
+    ret = spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&ext_transaction);
+    NRF24_CHECK_OK(ret);
+
+    if(ret > 32) {
+        ESP_LOGW(NRF24_TAG, "Got a payload width of greater than 32, clearing FIFO.");
+        NRF24_CHECK_OK(nrf24_flush_rx(dev));
+        return ESP_OK;
+    }
+
+    *len = payload_width;
+
+    memset(&transaction, 0, sizeof(spi_transaction_t));
+    memset(&ext_transaction, 0, sizeof(spi_transaction_ext_t));
+    transaction.flags = SPI_TRANS_VARIABLE_ADDR,
+    transaction.cmd = NRF24_CMD_R_RX_PL_WID;
+    transaction.length = payload_width * 8;
+    transaction.tx_buffer = &data;
+    transaction.rx_buffer = &data;
+
+    ext_transaction.base = transaction;
+    ext_transaction.address_bits = 1; // Add one address bit to fix bit misalignment in response
+
+    ret = spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&ext_transaction);
+    NRF24_CHECK_OK(ret);
+
+    return ESP_OK;
+}

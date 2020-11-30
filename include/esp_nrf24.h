@@ -72,3 +72,5 @@ esp_err_t nrf24_set_tx_address(nrf24_t *dev, uint8_t *address, uint8_t address_l
 esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length);
 
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);
+int nrf24_get_data_available(nrf24_t *dev);
+esp_err_t nrf24_get_data(nrf24_t *dev, uint8_t *data, uint8_t *len);

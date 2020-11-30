@@ -46,6 +46,14 @@
 #define NRF24_MASK_RF_DR_LOW (1<<5)
 
 #define NRF24_REG_STATUS 0x07
+#define NRF24_MASK_TX_FULL (1<<0)
+#define NRF24_MASK_RX_P_NO (0b111<<1)
+#define NRF24_MASK_MAX_RT (1<<4)
+#define NRF24_MASK_TX_DS (1<<5)
+#define NRF24_MASK_RX_DR (1<<6)
+
+
+
 #define NRF24_REG_OBSERVE_TX 0x08
 #define NRF24_REG_RPD 0x09
 #define NRF24_REG_RX_ADDR_P0 0x0A
