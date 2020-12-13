@@ -23,10 +23,8 @@ esp_err_t nrf24_init(nrf24_t *dev, spi_host_device_t host_id, int mosi_io_num, i
 		.clock_speed_hz = NRF24_SPI_FREQUENCY,
 		.queue_size = 7,
 		.mode = 0,
-		.flags = SPI_DEVICE_NO_DUMMY,
-        .spics_io_num = csn_io_num,
-        .command_bits = 8
-	};
+        .spics_io_num = csn_io_num
+    };
     spi_device_handle_t handle;
     ret = spi_bus_add_device(host_id, &devcfg, &handle);
     ESP_LOGI(NRF24_TAG, "Added SPI bus device, status: %d.", ret);
@@ -57,27 +55,37 @@ esp_err_t nrf24_free(nrf24_t *dev) {
 
 esp_err_t nrf24_get_register(nrf24_t *dev, uint8_t reg, uint8_t *data, uint8_t len) {
     spi_transaction_t transaction;
-    spi_transaction_ext_t ext_transaction; // Se we can have an address phase to fix bit misalignment in response
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    memset(&ext_transaction, 0, sizeof(spi_transaction_ext_t));
-    transaction.flags = SPI_TRANS_VARIABLE_ADDR,
-    transaction.cmd = NRF24_CMD_R_REGISTER | (NRF24_REGISTER_MASK & reg);
-    transaction.length = len * 8;
-    transaction.tx_buffer = data;
-    transaction.rx_buffer = data;
+    
+    uint8_t tx[len+1];
+    uint8_t rx[len+1];
 
-    ext_transaction.base = transaction;
-    ext_transaction.address_bits = 1; // Add one address bit to fix bit misalignment in response
+    memset(tx, 0, len+1);
+    memset(rx, 0, len+1);
+    
+    tx[0] = NRF24_CMD_R_REGISTER | (NRF24_REGISTER_MASK & reg);
 
-    return spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&ext_transaction);
+    transaction.length = (len+1) * 8;
+    transaction.tx_buffer = tx;
+    transaction.rx_buffer = rx;
+
+    NRF24_CHECK_OK(spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&transaction));
+
+    memcpy(data, &rx[1], len);
+    return ESP_OK;
 }
 
 esp_err_t nrf24_set_register(nrf24_t *dev, uint8_t reg, uint8_t *data, uint8_t len) {
     spi_transaction_t transaction;
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    transaction.cmd = NRF24_CMD_W_REGISTER | (NRF24_REGISTER_MASK & reg);
-    transaction.length = len * 8;
-    transaction.tx_buffer = data;
+    
+    uint8_t tx[len+1];
+    tx[0] = NRF24_CMD_W_REGISTER | (NRF24_REGISTER_MASK & reg);
+
+    memcpy(&tx[1], data, len);
+
+    transaction.length = (len+1) * 8;
+    transaction.tx_buffer = tx;
     transaction.rx_buffer = NULL;
 
     return spi_device_transmit(dev->spi_handle, &transaction);
@@ -86,9 +94,10 @@ esp_err_t nrf24_set_register(nrf24_t *dev, uint8_t reg, uint8_t *data, uint8_t l
 esp_err_t nrf24_flush_tx(nrf24_t *dev) {
     spi_transaction_t transaction;
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    transaction.cmd = NRF24_CMD_FLUSH_TX;
-    transaction.length = 0;
-    transaction.tx_buffer = NULL;
+
+    uint8_t tx = NRF24_CMD_FLUSH_TX;
+    transaction.length = 8;
+    transaction.tx_buffer = &tx;
     transaction.rx_buffer = NULL;
 
     ESP_LOGI(NRF24_TAG, "Flushed TX FIFO.");
@@ -99,9 +108,10 @@ esp_err_t nrf24_flush_tx(nrf24_t *dev) {
 esp_err_t nrf24_flush_rx(nrf24_t *dev) {
     spi_transaction_t transaction;
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    transaction.cmd = NRF24_CMD_FLUSH_RX;
-    transaction.length = 0;
-    transaction.tx_buffer = NULL;
+    
+    uint8_t tx = NRF24_CMD_FLUSH_RX;
+    transaction.length = 8;
+    transaction.tx_buffer = &tx;
     transaction.rx_buffer = NULL;
 
     ESP_LOGI(NRF24_TAG, "Flushed RX FIFO.");
@@ -159,14 +169,20 @@ esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate) {
     {
         case NRF24_250KBPS:
             ESP_LOGI(NRF24_TAG, "Seting data rate to 250kbps...");
+            rf_setup = rf_setup | (NRF24_MASK_RF_DR_LOW);
+            rf_setup = rf_setup & (~NRF24_MASK_RF_DR_HIGH);
             break;
 
         case NRF24_1MBPS:
             ESP_LOGI(NRF24_TAG, "Seting data rate to 1Mbps...");
+            rf_setup = rf_setup & (~NRF24_MASK_RF_DR_LOW);
+            rf_setup = rf_setup & (~NRF24_MASK_RF_DR_HIGH);
             break;
 
         case NRF24_2MBPS:
             ESP_LOGI(NRF24_TAG, "Seting data rate to 2Mbps...");
+            rf_setup = rf_setup & (~NRF24_MASK_RF_DR_LOW);
+            rf_setup = rf_setup | (NRF24_MASK_RF_DR_HIGH);
             break;
 
         default:
@@ -175,8 +191,6 @@ esp_err_t nrf24_set_data_rate(nrf24_t *dev, enum nrf24_data_rate_t rate) {
             break;
     }
 
-    rf_setup = rf_setup | ((rate & 0b10) << 2);
-    rf_setup = rf_setup | ((rate & 0b1) << 5);
     NRF24_CHECK_OK(nrf24_set_register(dev, NRF24_REG_RF_SETUP, &rf_setup, 1));
 
     ESP_LOGI(NRF24_TAG, "Set data rate.");
@@ -479,10 +493,14 @@ esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length) {
 
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len) {
     spi_transaction_t transaction;
+    
+    uint8_t tx[len+1];
+    tx[0] = NRF24_CMD_W_TX_PAYLOAD;
+    memcpy(&tx[1], data, len);
+    
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    transaction.cmd = NRF24_CMD_W_TX_PAYLOAD;
-    transaction.length = len * 8;
-    transaction.tx_buffer = data;
+    transaction.length = (len+1) * 8;
+    transaction.tx_buffer = tx;
     transaction.rx_buffer = NULL;
 
     return spi_device_transmit(dev->spi_handle, &transaction);
@@ -503,47 +521,50 @@ int nrf24_get_data_available(nrf24_t *dev) {
 }
 
 esp_err_t nrf24_get_data(nrf24_t *dev, uint8_t *data, uint8_t *len) {
-    esp_err_t ret;
-    
-    uint8_t payload_width;
+    NRF24_CHECK_OK(gpio_set_level(dev->ce_io_num, 0));
     
     spi_transaction_t transaction;
-    spi_transaction_ext_t ext_transaction; // Se we can have an address phase to fix bit misalignment in response
+    uint8_t *tx;
+    uint8_t *rx;
+
+    tx = malloc(2);
+    rx = malloc(2);
+
+    tx[0] = NRF24_CMD_R_RX_PL_WID;
+
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    memset(&ext_transaction, 0, sizeof(spi_transaction_ext_t));
-    transaction.flags = SPI_TRANS_VARIABLE_ADDR,
-    transaction.cmd = NRF24_CMD_R_RX_PL_WID;
-    transaction.length = 8;
-    transaction.tx_buffer = &payload_width;
-    transaction.rx_buffer = &payload_width;
+    transaction.length = 16;
+    transaction.tx_buffer = tx;
+    transaction.rx_buffer = rx;
 
-    ext_transaction.base = transaction;
-    ext_transaction.address_bits = 1; // Add one address bit to fix bit misalignment in response
+    NRF24_CHECK_OK(spi_device_transmit(dev->spi_handle, &transaction));
 
-    ret = spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&ext_transaction);
-    NRF24_CHECK_OK(ret);
+    *len = rx[1];
+    free(tx);
+    free(rx);
 
-    if(ret > 32) {
+    if(*len > 32) {
         ESP_LOGW(NRF24_TAG, "Got a payload width of greater than 32, clearing FIFO.");
         NRF24_CHECK_OK(nrf24_flush_rx(dev));
         return ESP_OK;
     }
 
-    *len = payload_width;
-
     memset(&transaction, 0, sizeof(spi_transaction_t));
-    memset(&ext_transaction, 0, sizeof(spi_transaction_ext_t));
-    transaction.flags = SPI_TRANS_VARIABLE_ADDR,
-    transaction.cmd = NRF24_CMD_R_RX_PL_WID;
-    transaction.length = payload_width * 8;
-    transaction.tx_buffer = &data;
-    transaction.rx_buffer = &data;
 
-    ext_transaction.base = transaction;
-    ext_transaction.address_bits = 1; // Add one address bit to fix bit misalignment in response
+    tx = malloc((*len)+1);
+    rx = malloc((*len)+1);
+    tx[0] = NRF24_CMD_R_RX_PAYLOAD;
 
-    ret = spi_device_transmit(dev->spi_handle, (spi_transaction_t *)&ext_transaction);
-    NRF24_CHECK_OK(ret);
+    transaction.length = ((*len)+1) * 8;
+    transaction.tx_buffer = tx;
+    transaction.rx_buffer = rx;
 
+    NRF24_CHECK_OK(spi_device_transmit(dev->spi_handle, &transaction));
+
+    memcpy(data, &rx[1], *len);
+    free(tx);
+    free(rx);
+
+    NRF24_CHECK_OK(gpio_set_level(dev->ce_io_num, 1));
     return ESP_OK;
 }

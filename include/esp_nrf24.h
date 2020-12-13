@@ -10,7 +10,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define NRF24_SPI_FREQUENCY 40000000
+#define NRF24_SPI_FREQUENCY (10*1000*1000)
 #define NRF24_TAG "NRF24"
 
 #define NRF24_CHECK_OK(ret) if((ret) != ESP_OK) return (ret)

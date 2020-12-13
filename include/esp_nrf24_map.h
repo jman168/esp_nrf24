@@ -14,7 +14,6 @@
 
 // Registers
 #define NRF24_REGISTER_MASK 0b00011111
-
 #define NRF24_REG_CONFIG 0x00
 #define NRF24_MASK_PRIM_RX (1<<0)
 #define NRF24_MASK_PWR_UP (1<<1)
