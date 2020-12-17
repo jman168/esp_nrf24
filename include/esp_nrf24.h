@@ -10,6 +10,10 @@
 #include <inttypes.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define NRF24_SPI_FREQUENCY (10*1000*1000)
 #define NRF24_TAG "NRF24"
 
@@ -74,3 +78,7 @@ esp_err_t nrf24_set_payload_length(nrf24_t *dev, uint8_t length);
 esp_err_t nrf24_send_data(nrf24_t *dev, uint8_t *data, uint8_t len);
 int nrf24_get_data_available(nrf24_t *dev);
 esp_err_t nrf24_get_data(nrf24_t *dev, uint8_t *data, uint8_t *len);
+
+#ifdef __cplusplus
+}
+#endif
